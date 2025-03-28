@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 0.0.1
+  version: 1.0.1
   title: APM Akuo API
   description: |
     This API is for use by the Akuo Mobile and Web apps to present audio content published from [Audio Project Manager](https://software.sil.org/audioprojectmanager/) (APM).
