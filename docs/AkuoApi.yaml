@@ -1,0 +1,2931 @@
+openapi: 3.0.0
+info:
+  version: 0.0.1
+  title: APM Akuo API
+  description: |
+    This API is for use by the Akuo Mobile and Web apps to present audio content published from [Audio Project Manager](https://software.sil.org/audioprojectmanager/) (APM).
+    
+    There are two kinds of **books** provided by this API:
+    - Scripture - Books of the Bible or Bible Story projects
+    - General - Projects in APM that provide additional content, such as "Key Concept Stories"
+    
+    The **General** projects/books are accessed by inserting `general/` before the book_id in most requests.  In Akuo these will appear under **Extras**.
+
+    **Helps** are an identical set of endpoints that begin with `helps/` (in place of bibles/) that provide Oral Exegetical Helps useful to Bible Translation teams.  They return content published in APM to **obthelps.org**.
+
+    Content published to **public** or **beta** is available at [https://akuobible.org](https://akuobible.org).    
+    Content published to **obthelps.org** is available at [https://obthelps.org](https://obthelps.org).
+
+servers:  
+  - description: Production Server
+    url: https://c7qhlrtgll.execute-api.us-east-1.amazonaws.com/prod/
+  - description: Development Server
+    url: https://l1ddixqxhe.execute-api.us-east-1.amazonaws.com/dev/
+security:
+  - apikeyAuth: []
+components:
+  # securitySchemes:
+  #   apikeyAuth:
+  #     type: http
+  #     scheme: apikey
+  schemas:
+    language_code:
+      type: string
+      description: "ISO language code as defined in APM (REF: https://www.w3.org/International/questions/qa-choosing-language-tags)"
+      example: "en"
+
+    note_category:
+      type: string
+      description: Category of audio note.  Must be one of the values provided by the /note_categories endpoint
+      example: "Explanations"
+
+    audio_item: &audio_item
+      type: object
+      required:
+        - format
+        - timestamp
+        - audio_filename
+        - url
+      properties: 
+        id: 
+          type: integer
+          description: Unique ID for audio file if it exists
+          nullable: false
+        format: 
+          type: string
+          enum: 
+            - MP3
+            - audio/mpeg
+            - Opus
+            - WAV
+        timestamp: 
+          type: string
+          example: "2023-09-05T12:00:00.000000Z"
+        audio_filename: 
+          type: string
+          description: Name of the audio file
+          nullable: true
+        url: 
+          type: string
+          description: Link to audio file
+          nullable: true
+        duration: 
+          type: integer
+          description: Duration of audio file in seconds
+          nullable: true
+    
+    audio: 
+      type: array
+      description: Audio recording for a passage or note
+      items: 
+        <<: *audio_item
+      example:
+        - id: 48749,
+          format: audio/mpeg,
+          timestamp: 2024-11-11T18:06:06.580244Z,
+          audio_filename: filename.mp3,
+          url: https://baseurl/bibleid/passage.mp3,
+          duration: 15
+
+    title_audio: 
+      type: array
+      description: Audio recording corresponding to the title of the element
+      items: 
+        <<: *audio_item
+      example:
+        - id: 48507,
+          format: audio/mpeg,
+          timestamp: 2024-11-11T18:06:04.468034Z,
+          audio_filename: filename.mp3,
+          url: https://baseurl/bibleid/title.mp3,
+          duration: 1
+
+    images: 
+      type: array
+      description: Graphic images for the immediately preceeding related object
+      items: 
+        type: object
+        required:
+          - format
+          - timestamp
+          - graphics_filename
+          - url
+        properties: 
+          format: 
+            type: string
+            enum: 
+              - WEBP
+              - PNG
+              - Thumbnail
+          timestamp: 
+            type: string
+            description: Last update timestamp
+            example: "2023-09-05T12:00:00.000000"
+          graphics_filename: 
+            type: string
+            description: Name of the graphics file
+            nullable: true
+          url: 
+            type: string
+            description: Link to the graphics file
+            nullable: true 
+          id: 
+            type: integer
+            description: Unique ID for graphics file if it exists
+            nullable: true
+
+    passage:
+      type: object
+      required: 
+        - passage
+        - obt_type
+        - text
+        - chapter_start
+        - verse_start
+        - chapter_end
+        - verse_end
+        - audio
+        - images
+      properties: 
+        passage: 
+          type: number
+          description: >-
+            Passage number is in the format of X.Y, e.g.,  0.1, 0.2, 1, 1.1, 2, 2.1, 2.2, etc.
+        obt_type: 
+          type: string
+        text: 
+          type: string
+        chapter_start: 
+          type: integer
+          description: Number of starting chapter for the passage
+        verse_start: 
+          type: integer
+          description: Number of starting verse for the passage; combined with chapter as chapter_start:verse_start
+        chapter_end: 
+          type: integer
+          description: Number of ending chapter for the passage
+        verse_end: 
+          type: integer
+          description: Number of ending verse for the passage; combined with chapter as chapter_end:verse_end
+        audio: 
+          $ref: '#/components/schemas/audio'
+        images: 
+          $ref: '#/components/schemas/images'
+        audio_notes: 
+          type: array
+          description: Audio notes related to the passage
+          items:
+            $ref: '#/components/schemas/audio_note'
+  
+    audio_note:
+      type: object
+      required: 
+      - passage
+      - obt_type
+      - note_category
+      - text
+      - audio
+      - images
+      properties: 
+        passage: 
+          type: number
+          description: number of the passage to be used for sequencing, format is X.Y, e.g., 0.1, 1, 1.1, 2, 2.1, 2.2 
+        obt_type: 
+          type: string
+          enum: 
+            - audio_note
+          description: OBT type for audio notes
+        note_category: 
+          $ref: '#/components/schemas/note_category'
+        text: 
+          type: string
+          description: Text string title of this audio note passage
+        audio: 
+          $ref: '#/components/schemas/audio'
+        images: 
+          $ref: '#/components/schemas/images'
+  
+    section_summary: 
+      type: object
+      description: Section outline, without any details or audio passages.
+      required: 
+        - id
+        - title
+      properties:
+        id: 
+          type: integer
+          description: Unique section id
+          exaple: 1654
+        title: 
+          type: string
+          description: Name of the section
+          example: "(1) Why Luke wrote thie story"
+
+    section:
+      type: object
+      required: 
+        - id
+        - section
+        - title
+      properties: 
+        id: 
+          type: integer
+          description: Uniquely identifies this section across the whole Bible
+          example: 1654
+        isPublic:
+          type: boolean
+          example: true
+        section: 
+          type: integer
+          description: Order of this section in the movement 
+          example: 1
+        title: 
+          type: string
+          description: Name of the section
+          example: "(1) Why Luke wrote thie story"
+        title_audio: 
+          $ref: '#/components/schemas/title_audio'
+        notes_title: 
+          type: string
+          description: Default title for audio notes at the section level (rather than at the passage level)
+          example: "Notes"
+        images: 
+          $ref: '#/components/schemas/images'
+        audio_notes: 
+          type: array
+          description: Section level audio notes such as introductions
+          items:
+            $ref: '#/components/schemas/audio_note'
+        passages: 
+          type: array
+          items:
+            $ref: '#/components/schemas/passage'
+  
+    movement_summary: 
+      type: object
+      description: Movement outline, without any details or audio passages.
+      required: 
+        - id
+        - title
+        - sections
+      properties:
+        id: 
+          type: integer
+          description: Unique movement id
+          example: 12185
+        title: 
+          type: string
+          description: Name of the movement
+          example: "M1 - The King's Birth"
+        sections: 
+          type: array
+          items: 
+            $ref: '#/components/schemas/section_summary'
+
+    movement:
+      type: object
+      required: 
+        - id
+        - movement
+        - title
+      properties: 
+        id: 
+          type: integer
+          description: Uniquely identifies this movement across the whole Bible
+        movement: 
+          type: integer
+          description: Movement number - used to display movements in sequential order
+        title: 
+          type: string
+          description: Name of the movement
+        title_audio: 
+          $ref: '#/components/schemas/title_audio'
+        images: 
+          $ref: '#/components/schemas/images'
+        section_start: 
+          type: integer
+          description: Number of first section in this movement
+        section_end: 
+          type: integer
+          description: Number of last section in this movement
+        chapter_start: 
+          type: integer
+          description: Number of first chapter that is referenced in this movement
+        verse_start: 
+          type: integer
+          description: Number of first verse that is referenced in this movement, along with chapter would be chapter_start:verse_start
+        chapter_end: 
+          type: integer
+          description: Number of last chapter that is referenced in this movement
+        verse_end: 
+          type: integer
+          description: Number of last verse that is referenced in this movement, along with chapter would be chapter_end:verse_end
+        audio_notes: 
+          type: array
+          description: Movement level audio notes such as introductions
+          items:
+            $ref: '#/components/schemas/audio_note'
+        sections: 
+          type: array
+          items: 
+            $ref: '#/components/schemas/section'
+  
+    obt_type_movement:
+      type: object
+      description: Highest level object returned by movements endpoint
+      required: 
+        - book_id
+        - obt_type
+        - movements
+      properties: 
+          book_id: 
+            type: string
+            example: LUK
+          name:
+            type: string
+            example: Luke
+          obt_type: 
+            type: string
+            enum:
+              - movement
+          movements: 
+            type: array
+            items: 
+              $ref: '#/components/schemas/movement'   
+    
+    chapter_summary:
+      type: object
+      description: Chapter outline, without any details or audio passages.
+      required: 
+        - id
+        - title
+        - sections
+      properties:
+        id: 
+          type: integer
+          description: Uniquely identifies this chapter across the whole Bible
+          example: 557495205
+        chapter: 
+          type: integer
+          description: Chapter number
+          example: 1
+        title: 
+          type: string
+          description: Name of the chapter
+          example: "Chapter 1"
+        sections: 
+          type: array
+          items: 
+            $ref: '#/components/schemas/section_summary'
+    
+    chapter:
+      type: object
+      description: "All sections and passages that appear in a given chapter"
+      required: 
+        - id
+        - chapter
+        - title
+      properties: 
+        id: 
+          type: integer
+          description: Uniquely identifies this chapter across the whole Bible
+          example: 1363714755
+        chapter: 
+          type: integer
+          description: Chapter number
+          example: 1
+        title: 
+          type: string
+          description: Name of the chapter
+          example: "Chapter 1"
+        movement_start: 
+          type: integer
+          description: Id of the movement where the chapter begins
+          example: 12258
+        section_start: 
+          type: integer
+          description: Number of the section where the chapter begins
+          example: 1
+        passage_start: 
+          type: number
+          description: Id of the first passage in the chapter
+          example: 16195
+        movement_end: 
+          type: integer
+          description: Id of the movement where the chapter ends
+          example: 12258
+        section_end: 
+          type: integer
+          description: Number of section where the chapter ends
+          example: 2
+        passage_end: 
+          type: number
+          description: Id of the last passage in the chapter
+          example: 32269
+        title_audio: 
+          $ref: '#/components/schemas/title_audio'
+        images: 
+          $ref: '#/components/schemas/images'
+        audio_notes: 
+          type: array
+          description: Chapter level audio notes such as introductions
+          items:
+            $ref: '#/components/schemas/audio_note'
+        sections: 
+          type: array
+          items: 
+            $ref: '#/components/schemas/section' 
+  
+    obt_type_chapter:
+      type: object
+      description: Highest level object returned by chapters endpoint
+      required: 
+        - book_id
+        - obt_type
+        - chapters
+      properties: 
+          book_id: 
+            type: string
+            example: LUK
+          obt_type: 
+            type: string
+            enum:
+              - chapter
+          chapters: 
+            type: array
+            items: 
+              $ref: '#/components/schemas/chapter'
+  
+    organization:
+      type: object
+      required: 
+        - id
+        - slug
+        - translations      
+      properties: 
+        id: 
+          type: integer
+        slug: 
+          type: string
+        primaryColor: 
+          type: string
+        secondaryColor: 
+          type: string
+        url_facebook: 
+          type: string
+        url_website: 
+          type: string
+        url_donate: 
+          type: string
+        url_twitter: 
+          type: string
+        address: 
+          type: string
+        city: 
+          type: string
+        state: 
+          type: string
+        country: 
+          type: string
+        zip: 
+          type: string
+        phone: 
+          type: string
+        email: 
+          type: string
+        latitude: 
+          type: number
+        longitude: 
+          type: number
+        logos: 
+          type: array
+          nullable: true
+          required:
+            - language_id
+            - iso
+            - url
+          items: 
+            type: object
+            properties: 
+              language_id: 
+                type: integer
+              iso: 
+                type: string
+              url: 
+                type: string
+        translations: 
+          type: array
+          required:
+            - language_id
+            - iso
+            - name
+            - description_short
+          items: 
+            type: object
+            properties: 
+              language_id: 
+                type: integer
+              iso: 
+                type: string
+              vernacular: 
+                type: string
+              alt: 
+                type: string
+              name: 
+                type: string
+              description_short: 
+                type: string
+  
+    obt_type_book: &obt_type_book
+      type: object
+      required: 
+        - id
+        - book_id
+        - obt_type
+        - name
+        - name_long
+        - name_alt
+        - testament
+        - testament_order
+        - book_order
+      properties: 
+        id:
+          type: integer
+          description: Unique id used to identify the Book 
+          example: 13696
+        book_id: 
+          type: string
+          description: Unique Book Id used to identify the Book in API path parameters
+          example: LUK
+        obt_type: 
+          type: string
+          enum:
+            - book
+        name: 
+          type: string
+          description: Common short book name; can be used for text title
+          example: "Luke"
+        name_long: 
+          type: string
+          description: Longer traditional book name
+          example: "The Gospel According to Luke"
+        name_alt: 
+          type: string
+          description: Story-based book name 
+          example: "Luke's Good News"
+        testament: 
+          type: string
+          enum: 
+            - OT
+            - NT
+          description: OT=Old Testament; NT=New Testament
+          example: NT
+        testament_order: 
+          type: integer
+          format: integer
+          description: Sort order within the testament.
+          example: 3
+        book_order: 
+          type: string
+          description: Alphanumeric sort order within the entire Bible.  
+                        OT books start with A; NT start with B.  Single digit padded with leading 0.
+          example: "B03"
+        book_group: 
+          type: string
+          description: Traditional grouping of books into larger sections
+          example: "The Gospels"
+        title_audio:
+          allOf:
+            - $ref: '#/components/schemas/title_audio'
+            - description: Audio recording of traditional book name corresponding to the "name" field
+        title_audio_alt:
+          allOf:
+            - $ref: '#/components/schemas/title_audio'
+            - description: Audio recording of book name corresponding to name_alt
+        images:
+          $ref: '#/components/schemas/images'
+        audio_notes: 
+          type: array
+          description: Audio notes at the book level
+          items:
+            $ref: '#/components/schemas/audio_note'
+    
+    book_outline: 
+      type: array
+      description: Book outline with movement and chapter summaries, no passage content
+      items: 
+        <<: *obt_type_book
+        movements:
+          type: array
+          items:
+            $ref: '#/components/schemas/movement_summary'
+        chapters: 
+          type: array
+          items:
+            $ref: '#/components/schemas/chapter_summary'
+
+    book_details:
+      type: array
+      description: Complete Book content, including all movements and chapters, with passage audio content
+      items: 
+        <<: *obt_type_book
+        movements:
+          type: array
+          items:
+            $ref: '#/components/schemas/movement'
+        chapters: 
+          type: array
+          items:
+            $ref: '#/components/schemas/chapter'
+
+tags:
+  - name: Bibles
+    description: Endpoints related to scripture books.  These appear under **Books** in [Akuo](https://akuobible.org).
+  - name: General
+    description: Endpoints related to non-scripture or general projects/books.  These appear under **Extras** in [Akuo](https://akuobible.org).
+  - name: Helps
+    description: These endpoints mimic the /bibles and /general endpoints, but present only content published to **obthelps.org** in the Audio Project Manager.
+                  This content is available to users at [ObtHelps](https://obthelps.org) as Oral Exegetical Helps.
+
+paths:
+  /languages:
+    get:
+      tags:
+        - Bibles
+      summary: Languages with published content
+      parameters:
+        - name: beta
+          description: If true, include Languages for Bibles that have content published as **Beta** in addition to those with **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data:
+                    type: array
+                    items: 
+                      type: object
+                      required: 
+                        - id
+                        - iso
+                        - name
+                        - bibles
+                      properties: 
+                        iso:                          
+                          $ref: '#/components/schemas/language_code'
+                        id: 
+                          $ref: '#/components/schemas/language_code'
+                        name: 
+                          type: string
+                          description: The name of the language in English
+                        autonym: 
+                          type: string
+                          description: The name of the language in that language itself
+                        audio: 
+                          $ref: '#/components/schemas/audio'
+                        bibles: 
+                          type: integer
+                          description: A count of the number of Bibles available in the language
+
+  /bibles:
+    get:
+      tags:
+        - Bibles
+      summary: Bibles with published content, filtered optionally by Language
+      parameters:
+        - name: language_code
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/language_code'
+          example: en
+        - name: beta
+          description: If true, return Bibles that have content published as **Beta** in addition to those with **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      type: object
+                      required:
+                      - bible_id
+                      - abbr
+                      - name
+                      - iso
+                      - id
+                      properties: 
+                        bible_id: 
+                          type: string
+                          description: "Uniquely identifies a bible - used as path parameter in other endpoints to get data for the desired bible"
+                          example: "ENGSEB"
+                        abbr: 
+                          type: string
+                          description: Abbreviation to identify the Bible in the mobile app
+                          example: SEB
+                        name: 
+                          type: string
+                          description: Descriptive name of the bible
+                          example: "Spoken English Bible"
+                        iso: 
+                          $ref: '#/components/schemas/language_code'
+                        id:
+                          type: integer
+                        title_audio: 
+                          $ref: '#/components/schemas/title_audio'
+                        audio_notes: 
+                          type: array
+                          description: Audio notes at the Bible level
+                          items:
+                            $ref: '#/components/schemas/audio_note'
+
+  /bibles/{bible_id}/obt_types:
+    get:
+      tags:
+        - Bibles
+      summary: Bible OBT Types
+      description: OBT Types are high-level classifications of the types of elements returned by the API.
+                   Examples include "title", "introduction", "book", "movement", "chapter", "scripture", "audio_note", "extra"
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      type: object
+                      required:
+                        - obt_type
+                      properties: 
+                        obt_type: 
+                          type: string
+                          example: audio_note
+                        description: 
+                          type: string
+                          example: "Audio notes - may be associated with a particular passage of scripture or stand-alone"
+                        id:
+                          type: integer
+
+  /bibles/{bible_id}/note_categories:
+    get:
+      tags:
+        - Bibles
+      summary: Bible Audio Note Categories
+      description: Categories identify the types of audio notes included in this Bible, for example, "Key Concept Stories" or "Explanations".
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      type: object
+                      required: 
+                        - id
+                        - category
+                        - color
+                      properties:
+                        id: 
+                          type: integer
+                          description: Unique identifier for the note category
+                          example: 95
+                        category: 
+                          type: string
+                          description: Category name
+                          example: "Explanations"
+                        color: 
+                          type: string
+                          description: "HTML color string to highlight the note type"
+                          example: "#97d481"
+                        specialUse: 
+                          type: string
+                          description: Identifies a category defined internally by APM for a special use, such as title or chapter number, 
+                                        as opposed to custom categories defined by the APM projects
+                          example: chapter
+                        title_audio: 
+                          allOf:
+                            - description: Audio recording of category name
+                            - $ref: '#/components/schemas/audio'
+                        images: 
+                          $ref: '#/components/schemas/images'  
+
+  /bibles/{bible_id}:
+    get:
+      tags:
+        - Bibles
+      summary: Bible Metadata
+      description: Provides additional details about the Bible
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: beta
+          description: Must be set to true if the desired Bible has only content published as **Beta** without any **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties: 
+                  data: 
+                    required: 
+                      - id
+                      - bible_id
+                      - abbr
+                      - name
+                      - language
+                      - iso
+                    properties:
+                      id:
+                        type: integer
+                      bible_id: 
+                        type: string
+                      abbr: 
+                        type: string
+                      name: 
+                        type: string
+                      language: 
+                        type: string
+                      iso: 
+                        type: string
+                      copyright:
+                        type: string
+                      description: 
+                        type: string
+                      vname: 
+                        type: string
+                      vdescription: 
+                        type: string
+                      notesTitle:
+                        type: string
+                        description: 
+                      title_audio: 
+                        allOf:
+                          - description: Audio recording of bible name
+                          - $ref: '#/components/schemas/audio'
+                      audio_notes: 
+                        type: array
+                        description: Audio notes at the Bible level
+                        items:
+                          $ref: '#/components/schemas/audio_note'
+                      date: 
+                        type: string
+                      country: 
+                        type: string
+                      alphabet: 
+                        type: string
+                        description: not currently available in APM
+                      mark:
+                        type: string
+                        description: not currently available in APM
+                      publishers: 
+                        type: string
+                        description: not currently available in APM
+                      attributions: 
+                        type: string
+                        description: not currently available in APM
+                      links: 
+                        type: string
+                        description: not currently available in APM
+                      filesets: 
+                        type: string
+                        description: not currently available in APM
+
+  /bibles/{bible_id}/books:
+    get:
+      tags:
+        - Bibles
+      summary: Bible Outline
+      description: Array of all books with published content in the bible.  Array elements have the same structure as that returned for a single book by /bibles/{bible_id}/{book_id}
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/book_outline'
+
+  /bibles/{bible_id}/general/books:
+    get:
+      tags:
+        - General
+      summary:  General Projects/Books Outline
+      description: Array of all general projects/books with published content.  Array elements have the same structure as that returned for a single book by /bibles/{bible_id}/general/{book_id}.
+                   In Akuo this content will appear under "Extras".
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/book_outline'
+
+  /bibles/{bible_id}/general/books/all:
+    get:
+      tags:
+        - General
+      summary: ALL General Project/Book content
+      description: Returns all the general projects/books, movements, sections and audio notes, including all audio content. In Akuo this content will appear under "Extras".
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data:
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/book_details'
+
+  /bibles/{bible_id}/{book_id}:
+    get:
+      tags:
+        - Bibles
+      summary: Book Outline
+      description: Outline of a single book including movements, sections and chapters but without any scripture passage content
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: PSA
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/book_outline'
+
+  /bibles/{bible_id}/general/{book_id}:
+    get:
+      tags:
+        - General
+      summary: Project/Book Outline
+      description: Outline of a single General project/book including movements and sections, but no section audio content
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items:                      
+                      $ref: '#/components/schemas/book_outline'
+                    example:
+                      - book_id: "Z01"
+                        name: "Key Concept Stories"
+                        name_long: "Key Concept Stories"
+                        name_alt: "Key Concept Stories"
+                        testament_order: 100
+                        book_order: "Z01"
+                        book_group: "extras"
+                        chapters: []
+                        movements:
+                          - id: 12460
+                            title: "Key Concepts in the Bible"
+                            sections: []
+                          - id: 13689
+                            title: "Key People in the Bible"
+                            sections: []
+                          - id: 13690
+                            title: "Key Places in the Bible"
+                            sections: []
+                        title_audio: []
+                        title_audio_alt: []
+                        images:
+                          - format: "Thumbnail"
+                            url: "https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-512.jpg"
+                            graphics_filename: "00-KCS_-4_5829_12458_graphic-512.jpg"
+                            timestamp: "2024-06-26T23:05:50.3"
+                            id: 74
+                          - format: "WEBP"
+                            url: "https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-1024.jpg"
+                            graphics_filename: "00-KCS_-4_5829_12458_graphic-1024.jpg"
+                            timestamp: "2024-06-26T23:05:50.3"
+                            id: 74
+                        audio_notes: []
+                        testament: null
+                        obt_type: "book"
+                        id: 12458
+
+  /bibles/{bible_id}/{book_id}/movements:
+    get:
+      tags:
+        - Bibles
+      summary: Content for a Bible and Book organized by Movements
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: JON
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: sections
+          description:  When false, do not return section audio content in the movements.  Used to limit content when only the outline is needed.
+                        If the query parameter is omitted, the default is to return all section content, same as sections=true.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_movement'
+
+  /bibles/{bible_id}/general/{book_id}/movements:
+    get:
+      tags:
+        - General
+      summary: Content for a General Project/Book organized by Movements
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: sections
+          description:  When false, do not return section audio content in the movements.  Used to limit content when only the outline is needed.
+                        If the query parameter is omitted, the default is to return all section content, same as sections=true.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_movement'
+
+  /bibles/{bible_id}/{book_id}/movements/{movement_id}:
+    get:
+      tags:
+        - Bibles
+      summary: 'Content for a single Movement within the Bible + Book'
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: LUK
+        - name: movement_id
+          description: Unique Id of the movement (not the movement number)
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 12185
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    items:
+                      $ref: '#/components/schemas/movement'
+  
+  /bibles/{bible_id}/general/{book_id}/movements/{movement_id}:
+    get:
+      tags:
+        - General
+      summary: 'Content for a single Movement within the Bible + General Project/Book'
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: movement_id
+          in: path
+          description: Unique Id of the movement (not the movement number)
+          schema:
+            type: integer
+          required: true
+          example: 12460
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    items:
+                      $ref: '#/components/schemas/movement'
+
+  /bibles/{bible_id}/{book_id}/chapters:
+    get:
+      tags:
+        - Bibles
+      summary: 'Content for all Chapters within the Bible + Book'
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: JON
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: sections
+          description:  When false, do not return section audio content in the chapters.  Used to limit content when only the outline is needed.
+                        If the query parameter is omitted, the default is to return all section content, same as sections=true.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_chapter'
+
+  /bibles/{bible_id}/general/{book_id}/chapters:
+    get:
+      tags:
+        - General
+      summary: 'Content for all Chapters within the Bible + General Project/Book'
+      description: "Note:  there may not always be chapters available for a General project if it is only arranged by movements."
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: sections
+          description:  When false, do not return section audio content in the chapters.  Used to limit content when only the outline is needed.
+                        If the query parameter is omitted, the default is to return all section content, same as sections=true.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_chapter'
+ 
+  /bibles/{bible_id}/{book_id}/chapters/{chapter_id}:
+    get:
+      tags:
+        - Bibles
+      summary: 'Content for a single Chapter within the Bible + Book'
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: LUK
+        - name: chapter_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 557495205
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    items:
+                      $ref: '#/components/schemas/chapter'
+
+  /bibles/{bible_id}/general/{book_id}/chapters/{chapter_id}:
+    get:
+      tags:
+        - General
+      summary: "Content for a single Chapter within the Bible + General Project/Book."
+      description: "Note:  there may not always be chapters available for a General project if it is only arranged by movements."
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: chapter_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    items:
+                      $ref: '#/components/schemas/chapter'
+
+  /bibles/{bible_id}/{book_id}/movement/{movement_id}/section/{section_id}:
+    get:
+      tags:
+        - Bibles
+      summary: 'Section Content for a Bible + Book + Movement + Section'
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: LUK
+        - name: movement_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 12185
+        - name: section_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1654
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_movement'
+
+  /bibles/{bible_id}/general/{book_id}/movement/{movement_id}/section/{section_id}:
+    get:
+      tags:
+        - General
+      summary: 'Section Content for a Movement of a General Project/Book'
+      description: "Note: Some general projects may only contain audio notes at the movement level and therefore will not return any sections.
+                    In this case, use the /movements/{movement_id} endpoint to retrieve the movement without any section id."
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: movement_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 12460
+        - name: section_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_movement'
+
+  /bibles/{bible_id}/{book_id}/chapter/{chapter_id}/section/{section_id}:
+    get:
+      tags:
+        - Bibles
+      summary: 'Section Content for a Bible + Book + Chapter + Section'
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: LUK
+        - name: chapter_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1363714755
+        - name: section_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_chapter'
+
+  /bibles/{bible_id}/general/{book_id}/chapter/{chapter_id}/section/{section_id}:
+    get:
+      tags:
+        - General
+      summary: 'Section Content for a Chapter of a General Project/Book'
+      description: "Note:  there may not always be chapters available for a General project if it is only arranged by movements."
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: chapter_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+        - name: section_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+        - name: beta
+          description: If true, return content published as **Beta** in addition to **Public** content.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_chapter'
+
+
+#-----------------------------------------------------------------
+# HELPS
+
+
+  /helps/languages:
+    get:
+      tags:
+        - Helps
+      summary: Languages for Bibles or Stories with shared content published to obthelps.org
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data:
+                    type: array
+                    items: 
+                      type: object
+                      required: 
+                        - id
+                        - iso
+                        - name
+                        - bibles
+                      properties: 
+                        iso:                          
+                          $ref: '#/components/schemas/language_code'
+                        id: 
+                          $ref: '#/components/schemas/language_code'
+                        name: 
+                          type: string
+                          description: The name of the language in English
+                        autonym: 
+                          type: string
+                          description: The name of the language in that language itself
+                        audio: 
+                          $ref: '#/components/schemas/audio'
+                        bibles: 
+                          type: integer
+                          description: A count of the number of Bibles available in the language
+
+  /helps/bibles:
+    get:
+      tags:
+        - Helps
+      summary: Bibles with content published to obthelps.org, filtered optionally by Language
+      parameters:
+        - name: language_code
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/language_code'
+          example: en
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      type: object
+                      required:
+                      - bible_id
+                      - abbr
+                      - name
+                      - iso
+                      - id
+                      properties: 
+                        bible_id: 
+                          type: string
+                          description: "Uniquely identifies a bible - used as path parameter in other endpoints to get data for the desired bible"
+                          example: "ENGSEB"
+                        abbr: 
+                          type: string
+                          description: Abbreviation to identify the Bible in the mobile app
+                          example: SEB
+                        name: 
+                          type: string
+                          description: Descriptive name of the bible
+                          example: "Spoken English Bible"
+                        iso: 
+                          $ref: '#/components/schemas/language_code'
+                        id:
+                          type: integer
+                        title_audio: 
+                          $ref: '#/components/schemas/title_audio'
+                        audio_notes: 
+                          type: array
+                          description: Audio notes at the Bible level
+                          items:
+                            $ref: '#/components/schemas/audio_note'
+
+  /helps/{bible_id}/obt_types:
+    get:
+      tags:
+        - Helps
+      summary: Bible OBT Types for content published to obthelps.org
+      description: OBT Types are high-level classifications of the types of elements returned by the API.
+                   Examples include "title", "introduction", "book", "movement", "chapter", "scripture", "audio_note", "extra"
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      type: object
+                      required:
+                        - obt_type
+                      properties: 
+                        obt_type: 
+                          type: string
+                          example: audio_note
+                        description: 
+                          type: string
+                          example: "Audio notes - may be associated with a particular passage of scripture or stand-alone"
+                        id:
+                          type: integer
+
+  /helps/{bible_id}/note_categories:
+    get:
+      tags:
+        - Helps
+      summary: Bible Audio Note Categories for content published to obthelps.org
+      description: Categories identify the types of audio notes included in this Bible, for example, "Key Concept Stories" or "Explanations".
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      type: object
+                      required: 
+                        - id
+                        - category
+                        - color
+                      properties:
+                        id: 
+                          type: integer
+                          description: Unique identifier for the note category
+                          example: 95
+                        category: 
+                          type: string
+                          description: Category name
+                          example: "Explanations"
+                        color: 
+                          type: string
+                          description: "HTML color string to highlight the note type"
+                          example: "#97d481"
+                        specialUse: 
+                          type: string
+                          description: Identifies a category defined internally by APM for a special use, such as title or chapter number, 
+                                        as opposed to custom categories defined by the APM projects
+                          example: chapter
+                        title_audio: 
+                          allOf:
+                            - description: Audio recording of category name
+                            - $ref: '#/components/schemas/audio'
+                        images: 
+                          $ref: '#/components/schemas/images'  
+
+  /helps/{bible_id}:
+    get:
+      tags:
+        - Helps
+      summary: Metadata for Bible with content published to obthelps.org
+      description: Provides additional details about the Bible
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties: 
+                  data: 
+                    required: 
+                      - id
+                      - bible_id
+                      - abbr
+                      - name
+                      - language
+                      - iso
+                    properties:
+                      id:
+                        type: integer
+                      bible_id: 
+                        type: string
+                      abbr: 
+                        type: string
+                      name: 
+                        type: string
+                      language: 
+                        type: string
+                      iso: 
+                        type: string
+                      copyright:
+                        type: string
+                      description: 
+                        type: string
+                      vname: 
+                        type: string
+                      vdescription: 
+                        type: string
+                      notesTitle:
+                        type: string
+                        description: 
+                      title_audio: 
+                        allOf:
+                          - description: Audio recording of bible name
+                          - $ref: '#/components/schemas/audio'
+                      audio_notes: 
+                        type: array
+                        description: Audio notes at the Bible level
+                        items:
+                          $ref: '#/components/schemas/audio_note'
+                      date: 
+                        type: string
+                      country: 
+                        type: string
+                      alphabet: 
+                        type: string
+                        description: not currently available in APM
+                      mark:
+                        type: string
+                        description: not currently available in APM
+                      publishers: 
+                        type: string
+                        description: not currently available in APM
+                      attributions: 
+                        type: string
+                        description: not currently available in APM
+                      links: 
+                        type: string
+                        description: not currently available in APM
+                      filesets: 
+                        type: string
+                        description: not currently available in APM
+
+  /helps/{bible_id}/books:
+    get:
+      tags:
+        - Helps
+      summary: Bible Outline of content published to obthelps.org
+      description: Array of all books with content published to obthelps.org.  Array elements have the same structure as that returned for a single book by /helps/{bible_id}/{book_id}
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/book_outline'
+
+  /helps/{bible_id}/general/books:
+    get:
+      tags:
+        - Helps
+      summary:  General Projects/Books Outline of content published to obthelps.org
+      description: Array of all general projects/books with content published to obthelps.org.  Array elements have the same structure as that returned for a single book by /helps/{bible_id}/general/{book_id}
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/book_outline'
+
+  /helps/{bible_id}/general/books/all:
+    get:
+      tags:
+        - Helps
+      summary: ALL General Project/Book content published to obthelps.org
+      description: Returns all the general projects/books, movements, sections and audio notes, including all audio content
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data:
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/book_details'
+
+  /helps/{bible_id}/{book_id}:
+    get:
+      tags:
+        - Helps
+      summary: Book Outline of content published to obthelps.org
+      description: Outline of a single book including movements, sections and chapters but without any scripture passage content
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: PSA
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/book_outline'
+
+  /helps/{bible_id}/general/{book_id}:
+    get:
+      tags:
+        - Helps
+      summary: Project/Book Outline of content published to obthelps.org
+      description: Outline of a single General project/book including movements and sections, but no section audio content.
+                  In Akuo this content will appear under "Extras".
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    type: array
+                    items:                      
+                      $ref: '#/components/schemas/book_outline'
+                    example:
+                      - book_id: "Z01"
+                        name: "Key Concept Stories"
+                        name_long: "Key Concept Stories"
+                        name_alt: "Key Concept Stories"
+                        testament_order: 100
+                        book_order: "Z01"
+                        book_group: "extras"
+                        chapters: []
+                        movements:
+                          - id: 12460
+                            title: "Key Concepts in the Bible"
+                            sections: []
+                          - id: 13689
+                            title: "Key People in the Bible"
+                            sections: []
+                          - id: 13690
+                            title: "Key Places in the Bible"
+                            sections: []
+                        title_audio: []
+                        title_audio_alt: []
+                        images:
+                          - format: "Thumbnail"
+                            url: "https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-512.jpg"
+                            graphics_filename: "00-KCS_-4_5829_12458_graphic-512.jpg"
+                            timestamp: "2024-06-26T23:05:50.3"
+                            id: 74
+                          - format: "WEBP"
+                            url: "https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-1024.jpg"
+                            graphics_filename: "00-KCS_-4_5829_12458_graphic-1024.jpg"
+                            timestamp: "2024-06-26T23:05:50.3"
+                            id: 74
+                        audio_notes: []
+                        testament: null
+                        obt_type: "book"
+                        id: 12458
+
+  /helps/{bible_id}/{book_id}/movements:
+    get:
+      tags:
+        - Helps
+      summary: Book content published to obthelps.org, organized by Movements
+      description:  Movements content published to obthelps.org
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: JON
+        - name: sections
+          description:  When false, do not return section audio content in the movements.  Used to limit content when only the outline is needed.
+                        If the query parameter is omitted, the default is to return all section content, same as sections=true.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_movement'
+
+  /helps/{bible_id}/general/{book_id}/movements:
+    get:
+      tags:
+        - Helps
+      summary: General Project/Book content published to obthelps.org, organized by Movements
+      description:  Movements content published to obthelps.org
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: sections
+          description:  When false, do not return section audio content in the movements.  Used to limit content when only the outline is needed.
+                        If the query parameter is omitted, the default is to return all section content, same as sections=true.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_movement'
+
+  /helps/{bible_id}/{book_id}/movements/{movement_id}:
+    get:
+      tags:
+        - Helps
+      summary: Content published to obthelps.org for a single Movement within the Bible + Book
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: LUK
+        - name: movement_id
+          description: Unique Id of the movement (not the movement number)
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 12185
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    items:
+                      $ref: '#/components/schemas/movement'
+  
+  /helps/{bible_id}/general/{book_id}/movements/{movement_id}:
+    get:
+      tags:
+        - Helps
+      summary: Content published to obthelps.org for a single Movement within the Bible + General Project/Book
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: movement_id
+          in: path
+          description: Unique Id of the movement (not the movement number)
+          schema:
+            type: integer
+          required: true
+          example: 12460
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    items:
+                      $ref: '#/components/schemas/movement'
+
+  /helps/{bible_id}/{book_id}/chapters:
+    get:
+      tags:
+        - Helps
+      summary: Content published to obthelps.org for all Chapters within the Bible + Book
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: JON
+        - name: sections
+          description:  When false, do not return section audio content in the chapters.  Used to limit content when only the outline is needed.
+                        If the query parameter is omitted, the default is to return all section content, same as sections=true.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_chapter'
+
+  /helps/{bible_id}/general/{book_id}/chapters:
+    get:
+      tags:
+        - Helps
+      summary: Content published to obthelps.org for all Chapters within the Bible + General Project/Book
+      description: "Note: there may not always be chapters available for a General project if it is only arranged by movements."
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: sections
+          description:  When false, do not return section audio content in the chapters.  Used to limit content when only the outline is needed.
+                        If the query parameter is omitted, the default is to return all section content, same as sections=true.
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_chapter'
+ 
+  /helps/{bible_id}/{book_id}/chapters/{chapter_id}:
+    get:
+      tags:
+        - Helps
+      summary: Content published to obthelps.org for a single Chapter within the Bible + Book
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: LUK
+        - name: chapter_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 557495205
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    items:
+                      $ref: '#/components/schemas/chapter'
+
+  /helps/{bible_id}/general/{book_id}/chapters/{chapter_id}:
+    get:
+      tags:
+        - Helps
+      summary: Content published to obthelps.org for a single Chapter within the Bible + General Project/Book
+      description: "Note:  there may not always be chapters available for a General project if it is only arranged by movements."
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: chapter_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    items:
+                      $ref: '#/components/schemas/chapter'
+
+  /helps/{bible_id}/{book_id}/movement/{movement_id}/section/{section_id}:
+    get:
+      tags:
+        - Helps
+      summary: Section Content published to obthelps.org for a Bible + Book + Movement + Section
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: LUK
+        - name: movement_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 12185
+        - name: section_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1654
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_movement'
+
+  /helps/{bible_id}/general/{book_id}/movement/{movement_id}/section/{section_id}:
+    get:
+      tags:
+        - Helps
+      summary: Section Content published to obthelps.org for a Movement of a General Project/Book
+      description: "Note: Some general projects may only contain audio notes at the movement level and therefore will not return any sections.
+                    In this case, use the /movements/{movement_id} endpoint to retrieve the movement without any section id."
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: movement_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 12460
+        - name: section_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_movement'
+
+  /helps/{bible_id}/{book_id}/chapter/{chapter_id}/section/{section_id}:
+    get:
+      tags:
+        - Helps
+      summary: Section Content published to obthelps.org for a Bible + Book + Chapter + Section
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: LUK
+        - name: chapter_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1363714755
+        - name: section_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_chapter'
+
+  /helps/{bible_id}/general/{book_id}/chapter/{chapter_id}/section/{section_id}:
+    get:
+      tags:
+        - Helps
+      summary: Section Content published to obthelps.org for a Chapter of a General Project/Book
+      description: "Note:  there may not always be chapters available for a General project if it is only arranged by movements."
+      parameters:
+        - name: bible_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: ENGSEB
+        - name: book_id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: Z01
+        - name: chapter_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+        - name: section_id
+          in: path
+          schema:
+            type: integer
+          required: true
+          example: 1
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                required: 
+                  - data
+                properties: 
+                  data: 
+                    $ref: '#/components/schemas/obt_type_chapter'
