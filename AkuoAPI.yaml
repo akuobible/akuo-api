@@ -34,14 +34,10 @@ components:
       description: "ISO language code as defined in APM (REF: https://www.w3.org/International/questions/qa-choosing-language-tags)"
       example: "en"
 
-    note_category:
-      type: string
-      description: Category of audio note.  Must be one of the values provided by the /note_categories endpoint
-      example: "Explanations"
-
-    audio_item: &audio_item
+    audio_item:
       type: object
       required:
+        - id
         - format
         - timestamp
         - audio_filename
@@ -49,8 +45,7 @@ components:
       properties: 
         id: 
           type: integer
-          description: Unique ID for audio file if it exists
-          nullable: false
+          description: Unique ID for audio file
         format: 
           type: string
           enum: 
@@ -64,21 +59,19 @@ components:
         audio_filename: 
           type: string
           description: Name of the audio file
-          nullable: true
         url: 
           type: string
           description: Link to audio file
-          nullable: true
         duration: 
           type: integer
           description: Duration of audio file in seconds
-          nullable: true
     
     audio: 
       type: array
-      description: Audio recording for a passage or note
+      description: Audio recording for a passage, note, or title
       items: 
-        <<: *audio_item
+        $ref: '#/components/schemas/audio_item'
+      default: []
       example:
         - id: 48749,
           format: audio/mpeg,
@@ -91,7 +84,8 @@ components:
       type: array
       description: Audio recording corresponding to the title of the element
       items: 
-        <<: *audio_item
+        $ref: '#/components/schemas/audio_item'
+      default: []
       example:
         - id: 48507,
           format: audio/mpeg,
@@ -103,14 +97,19 @@ components:
     images: 
       type: array
       description: Graphic images for the immediately preceeding related object
+      default: []
       items: 
         type: object
         required:
+          - id
           - format
           - timestamp
           - graphics_filename
           - url
         properties: 
+          id: 
+            type: integer
+            description: Unique ID for graphics file
           format: 
             type: string
             enum: 
@@ -124,15 +123,9 @@ components:
           graphics_filename: 
             type: string
             description: Name of the graphics file
-            nullable: true
           url: 
             type: string
             description: Link to the graphics file
-            nullable: true 
-          id: 
-            type: integer
-            description: Unique ID for graphics file if it exists
-            nullable: true
 
     passage:
       type: object
@@ -176,17 +169,55 @@ components:
           description: Audio notes related to the passage
           items:
             $ref: '#/components/schemas/audio_note'
+          default: []
   
+    note_category:
+      type: object
+      required: 
+        - id
+        - category
+        - color
+      properties: 
+        id: 
+          type: integer
+          description: Unique identifier for the note category
+          example: 95
+        category: 
+          type: string
+          description: Category name
+          example: "Explanations"
+        color: 
+          type: string
+          description: "HTML color string to highlight the note type"
+          example: "#97d481"
+        specialUse:
+          type: string
+          description: Identifies a category defined internally by APM for a special use, such as title or chapter number, 
+                        as opposed to custom categories defined by the APM projects
+          example: chapter
+        title_audio:
+          allOf:
+            - $ref: '#/components/schemas/title_audio'
+            - description: Audio recording of category name
+          default: []
+        images:
+          $ref: '#/components/schemas/images'
+          default: []
+
     audio_note:
       type: object
       required: 
-      - passage
-      - obt_type
+      - id
+      - note_category_id
       - note_category
-      - text
+      - obt_type
+      - passage
       - audio
-      - images
       properties: 
+        id: 
+          type: integer
+          description: Uniquely identifies this audio note across the whole Bible
+          example: 38654
         passage: 
           type: number
           description: number of the passage to be used for sequencing, format is X.Y, e.g., 0.1, 1, 1.1, 2, 2.1, 2.2 
@@ -195,14 +226,28 @@ components:
           enum: 
             - audio_note
           description: OBT type for audio notes
+        note_category_id: 
+          type: integer
+          description: Unique identifier for the note category as defined in /note_categories.  If the note has no category assigned, value is 0.
+          example: 92
         note_category: 
-          $ref: '#/components/schemas/note_category'
-        text: 
+          type: string
+          description: Descriptive name of note category.  Will be one of the values defined by the /note_categories endpoint or "audio_note" if unassigned.
+          example: "Explanations"
+        title: 
           type: string
           description: Text string title of this audio note passage
-        audio: 
+        title_audio: 
+          $ref: '#/components/schemas/title_audio'
+        text: 
+          type: string
+          description: Transcription of the audio if available
+        linkUrl: 
+          type: string
+          description: Transcription of the audio if available
+        audio:
           $ref: '#/components/schemas/audio'
-        images: 
+        images:
           $ref: '#/components/schemas/images'
   
     section_summary: 
@@ -256,6 +301,7 @@ components:
           description: Section level audio notes such as introductions
           items:
             $ref: '#/components/schemas/audio_note'
+          default: []
         passages: 
           type: array
           items:
@@ -325,6 +371,7 @@ components:
           description: Movement level audio notes such as introductions
           items:
             $ref: '#/components/schemas/audio_note'
+          default: []
         sections: 
           type: array
           items: 
@@ -431,6 +478,7 @@ components:
           description: Chapter level audio notes such as introductions
           items:
             $ref: '#/components/schemas/audio_note'
+          default: []
         sections: 
           type: array
           items: 
@@ -457,86 +505,86 @@ components:
               $ref: '#/components/schemas/chapter'
   
     organization:
-      type: object
-      required: 
-        - id
-        - slug
-        - translations      
-      properties: 
-        id: 
-          type: integer
-        slug: 
-          type: string
-        primaryColor: 
-          type: string
-        secondaryColor: 
-          type: string
-        url_facebook: 
-          type: string
-        url_website: 
-          type: string
-        url_donate: 
-          type: string
-        url_twitter: 
-          type: string
-        address: 
-          type: string
-        city: 
-          type: string
-        state: 
-          type: string
-        country: 
-          type: string
-        zip: 
-          type: string
-        phone: 
-          type: string
-        email: 
-          type: string
-        latitude: 
-          type: number
-        longitude: 
-          type: number
-        logos: 
-          type: array
-          nullable: true
-          required:
-            - language_id
-            - iso
-            - url
-          items: 
-            type: object
-            properties: 
-              language_id: 
-                type: integer
-              iso: 
-                type: string
-              url: 
-                type: string
-        translations: 
-          type: array
-          required:
-            - language_id
-            - iso
-            - name
-            - description_short
-          items: 
-            type: object
-            properties: 
-              language_id: 
-                type: integer
-              iso: 
-                type: string
-              vernacular: 
-                type: string
-              alt: 
-                type: string
-              name: 
-                type: string
-              description_short: 
-                type: string
+      type: object      
+        #   required: 
+        #     - id
+        #     - slug
+        #     - translations      
+        #   properties: 
+        #     id: 
+        #       type: integer
+        #     slug: 
+        #       type: string
+        #     primaryColor: 
+        #       type: string
+        #     secondaryColor: 
+        #       type: string
+        #     url_facebook: 
+        #       type: string
+        #     url_website: 
+        #       type: string
+        #     url_donate: 
+        #       type: string
+        #     url_twitter: 
+        #       type: string
+        #     address: 
+        #       type: string
+        #     city: 
+        #       type: string
+        #     state: 
+        #       type: string
+        #     country: 
+        #       type: string
+        #     zip: 
+        #       type: string
+        #     phone: 
+        #       type: string
+        #     email: 
+        #       type: string
+        #     latitude: 
+        #       type: number
+        #     longitude: 
+        #       type: number
+        #     logos: 
+        #       type: array
+        #       required:
+        #         - language_id
+        #         - iso
+        #         - url
+        #       items: 
+        #         type: object
+        #         properties: 
+        #           language_id: 
+        #             type: integer
+        #           iso: 
+        #             type: string
+        #           url: 
+        #             type: string
+        #     translations: 
+        #       type: array
+        #       required:
+        #         - language_id
+        #         - iso
+        #         - name
+        #         - description_short
+        #       items: 
+        #         type: object
+        #         properties: 
+        #           language_id: 
+        #             type: integer
+        #           iso: 
+        #             type: string
+        #           vernacular: 
+        #             type: string
+        #           alt: 
+        #             type: string
+        #           name: 
+        #             type: string
+        #           description_short: 
+        #             type: string
+      description: Future use for organization information.  Not currently provided by APM.
   
-    obt_type_book: &obt_type_book
+    obt_type_book:
       type: object
       required: 
         - id
@@ -609,34 +657,41 @@ components:
           description: Audio notes at the book level
           items:
             $ref: '#/components/schemas/audio_note'
+          default: []
     
     book_outline: 
       type: array
       description: Book outline with movement and chapter summaries, no passage content
       items: 
-        <<: *obt_type_book
-        movements:
-          type: array
-          items:
-            $ref: '#/components/schemas/movement_summary'
-        chapters: 
-          type: array
-          items:
-            $ref: '#/components/schemas/chapter_summary'
+        allOf:
+        - $ref: '#/components/schemas/obt_type_book'
+        - type: object
+          properties:
+            movements:
+              type: array
+              items:
+                $ref: '#/components/schemas/movement_summary'
+            chapters:
+              type: array
+              items:
+                $ref: '#/components/schemas/chapter_summary'
 
     book_details:
       type: array
       description: Complete Book content, including all movements and chapters, with passage audio content
       items: 
-        <<: *obt_type_book
-        movements:
-          type: array
-          items:
-            $ref: '#/components/schemas/movement'
-        chapters: 
-          type: array
-          items:
-            $ref: '#/components/schemas/chapter'
+        allOf:
+        - $ref: '#/components/schemas/obt_type_book'
+        - type: object
+          properties:
+            movements:
+              type: array
+              items:
+                $ref: '#/components/schemas/movement'
+            chapters: 
+              type: array
+              items:
+                $ref: '#/components/schemas/chapter'
 
 tags:
   - name: Bibles
@@ -847,35 +902,7 @@ paths:
                   data: 
                     type: array
                     items: 
-                      type: object
-                      required: 
-                        - id
-                        - category
-                        - color
-                      properties:
-                        id: 
-                          type: integer
-                          description: Unique identifier for the note category
-                          example: 95
-                        category: 
-                          type: string
-                          description: Category name
-                          example: "Explanations"
-                        color: 
-                          type: string
-                          description: "HTML color string to highlight the note type"
-                          example: "#97d481"
-                        specialUse: 
-                          type: string
-                          description: Identifies a category defined internally by APM for a special use, such as title or chapter number, 
-                                        as opposed to custom categories defined by the APM projects
-                          example: chapter
-                        title_audio: 
-                          allOf:
-                            - description: Audio recording of category name
-                            - $ref: '#/components/schemas/audio'
-                        images: 
-                          $ref: '#/components/schemas/images'  
+                      $ref: '#/components/schemas/note_category'
 
   /bibles/{bible_id}:
     get:
