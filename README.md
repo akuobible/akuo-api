@@ -1,6 +1,6 @@
 # Akuo API Swagger UI
 
-This project provides a local Swagger UI for exploring and testing the [Akuo API](AkuoAPI.yaml).
+This project documents the [Akuo API](AkuoAPI.yaml) and publishes to Swagger UI from GitHub Pages.
 
 ## Project Structure
 
@@ -10,6 +10,10 @@ This project provides a local Swagger UI for exploring and testing the [Akuo API
 - `LICENSE` – MIT License.
 
 ## Usage
+
+### View the API in Swagger from GitHub Pages
+
+[APM Akuo API on Swagger](https://akuobible.github.io/akuo-api/)
 
 ### Local Preview
 
@@ -21,12 +25,21 @@ To view the Swagger UI locally:
    ```
 2. Open your browser and go to [http://localhost:8000](http://localhost:8000).
 
-You will see the interactive documentation for the Akuo API.
+You will see the interactive Swagger documentation for the Akuo API.
 
 ### API Documentation
 
 - The API specification is defined in [`AkuoAPI.yaml`](AkuoAPI.yaml).
-- The UI uses [Swagger UI](https://swagger.io/tools/swagger-ui/) via CDN.
+- The UI uses [Swagger UI](https://swagger.io/tools/swagger-ui/) via CDN as defined in index.html.
+
+### Deploy on GitHub Pages
+
+- From the [akuobible/akuo-api](https://github.com/akuobible/akuo-api) GitHub repo
+- Click Settings → Pages
+- Under Source dropdown, choose main
+- Click Save
+- After a minute or two, your site will be live at: [https://akuobible.github.io/akuo-api/](https://akuobible.github.io/akuo-api/)
+- Any updates to the repo will trigger an automatic rebuild
 
 ## License
 
