@@ -7,7 +7,7 @@ info:
     
     There are two kinds of **books** provided by this API:
     - Scripture - Books of the Bible or Bible Story projects
-    - General - Projects in APM that provide additional content, such as "Key Concept Stories"
+    - General - Projects in APM that provide additional content, such as Key Concept Stories
     
     The **General** projects/books are accessed by inserting `general/` before the book_id in most requests.  In Akuo these will appear under **Extras**.
 
@@ -32,72 +32,54 @@ components:
     language_code:
       type: string
       description: "ISO language code as defined in APM (REF: https://www.w3.org/International/questions/qa-choosing-language-tags)"
-      example: "en"
-
-    audio_item:
-      type: object
-      required:
-        - id
-        - format
-        - timestamp
-        - audio_filename
-        - url
-      properties: 
-        id: 
-          type: integer
-          description: Unique ID for audio file
-        format: 
-          type: string
-          enum: 
-            - MP3
-            - audio/mpeg
-            - Opus
-            - WAV
-        timestamp: 
-          type: string
-          example: "2023-09-05T12:00:00.000000Z"
-        audio_filename: 
-          type: string
-          description: Name of the audio file
-        url: 
-          type: string
-          description: Link to audio file
-        duration: 
-          type: integer
-          description: Duration of audio file in seconds
+      example: en
     
-    audio: 
+    audio:
       type: array
       description: Audio recording for a passage, note, or title
-      items: 
-        $ref: '#/components/schemas/audio_item'
-      default: []
-      example:
-        - id: 48749,
-          format: audio/mpeg,
-          timestamp: 2024-11-11T18:06:06.580244Z,
-          audio_filename: filename.mp3,
-          url: https://baseurl/bibleid/passage.mp3,
-          duration: 15
-
-    title_audio: 
-      type: array
-      description: Audio recording corresponding to the title of the element
-      items: 
-        $ref: '#/components/schemas/audio_item'
-      default: []
-      example:
-        - id: 48507,
-          format: audio/mpeg,
-          timestamp: 2024-11-11T18:06:04.468034Z,
-          audio_filename: filename.mp3,
-          url: https://baseurl/bibleid/title.mp3,
-          duration: 1
+      items:
+        type: object
+        required:
+          - id
+          - format
+          - timestamp
+          - audio_filename
+          - url
+        properties: 
+          id: 
+            type: integer
+            description: Unique ID for audio file
+          format: 
+            type: string
+            enum: 
+              - MP3
+              - audio/mpeg
+              - Opus
+              - WAV
+          timestamp: 
+            type: string
+            example: 2023-09-05T12:00:00.000000Z
+          audio_filename: 
+            type: string
+            description: Name of the audio file
+          url: 
+            type: string
+            description: Link to audio file
+          duration: 
+            type: integer
+            description: Duration of audio file in seconds
+        example:
+          id: 12345
+          format: audio/mpeg
+          timestamp: 2024-11-11T18:06:04.468034Z
+          audio_filename: filename.mp3
+          url: https://baseurl/BIBLEID/filename.mp3
+          duration: 4
 
     images: 
       type: array
       description: Graphic images for the immediately preceeding related object
-      default: []
+      # default: []
       items: 
         type: object
         required:
@@ -119,13 +101,19 @@ components:
           timestamp: 
             type: string
             description: Last update timestamp
-            example: "2023-09-05T12:00:00.000000"
+            example: 2023-09-05T12:00:00.000000
           graphics_filename: 
             type: string
             description: Name of the graphics file
           url: 
             type: string
             description: Link to the graphics file
+      example:
+        - id: 12345
+          format: WEBP
+          timestamp: 2025-05-23T16:30:18.251778Z
+          graphics_filename: filename.webp
+          url: https://baseurl/graphics/filename.webp
 
     passage:
       type: object
@@ -169,7 +157,7 @@ components:
           description: Audio notes related to the passage
           items:
             $ref: '#/components/schemas/audio_note'
-          default: []
+          # default: []
   
     note_category:
       type: object
@@ -185,24 +173,26 @@ components:
         category: 
           type: string
           description: Category name
-          example: "Explanations"
+          example: Explanations
         color: 
           type: string
-          description: "HTML color string to highlight the note type"
+          description: HTML color string to highlight the note type
           example: "#97d481"
         specialUse:
           type: string
-          description: Identifies a category defined internally by APM for a special use, such as title or chapter number, 
+          enum:
+            - chapter
+            - title
+          default: ""
+          description: Identifies a category defined internally by APM for a special use, such as a title or chapter number, 
                         as opposed to custom categories defined by the APM projects
-          example: chapter
         title_audio:
-          allOf:
-            - $ref: '#/components/schemas/title_audio'
-            - description: Audio recording of category name
-          default: []
+          description: Audio recording of category name
+          $ref: '#/components/schemas/audio'
+          # default: []
         images:
           $ref: '#/components/schemas/images'
-          default: []
+          # default: []
 
     audio_note:
       type: object
@@ -217,7 +207,7 @@ components:
         id: 
           type: integer
           description: Uniquely identifies this audio note across the whole Bible
-          example: 38654
+          example: 12345
         passage: 
           type: number
           description: number of the passage to be used for sequencing, format is X.Y, e.g., 0.1, 1, 1.1, 2, 2.1, 2.2 
@@ -232,13 +222,14 @@ components:
           example: 92
         note_category: 
           type: string
-          description: Descriptive name of note category.  Will be one of the values defined by the /note_categories endpoint or "audio_note" if unassigned.
-          example: "Explanations"
+          description: Descriptive name of note category.  Will be one of the values defined by the /note_categories endpoint or 'audio_note' if unassigned.
+          example: Explanations
         title: 
           type: string
           description: Text string title of this audio note passage
-        title_audio: 
-          $ref: '#/components/schemas/title_audio'
+        title_audio:
+          description: Audio recording of title for this audio note
+          $ref: '#/components/schemas/audio'
         text: 
           type: string
           description: Transcription of the audio if available
@@ -260,11 +251,11 @@ components:
         id: 
           type: integer
           description: Unique section id
-          exaple: 1654
+          exaple: 12345
         title: 
           type: string
           description: Name of the section
-          example: "(1) Why Luke wrote thie story"
+          example: (1) Why Luke wrote thie story
 
     section:
       type: object
@@ -276,7 +267,7 @@ components:
         id: 
           type: integer
           description: Uniquely identifies this section across the whole Bible
-          example: 1654
+          example: 12345
         isPublic:
           type: boolean
           example: true
@@ -287,13 +278,14 @@ components:
         title: 
           type: string
           description: Name of the section
-          example: "(1) Why Luke wrote thie story"
-        title_audio: 
-          $ref: '#/components/schemas/title_audio'
+          example: (1) Why Luke wrote thie story
+        title_audio:
+          description: Audio recording of section title
+          $ref: '#/components/schemas/audio'
         notes_title: 
           type: string
           description: Default title for audio notes at the section level (rather than at the passage level)
-          example: "Notes"
+          example: Notes
         images: 
           $ref: '#/components/schemas/images'
         audio_notes: 
@@ -301,7 +293,7 @@ components:
           description: Section level audio notes such as introductions
           items:
             $ref: '#/components/schemas/audio_note'
-          default: []
+          # default: []
         passages: 
           type: array
           items:
@@ -318,11 +310,11 @@ components:
         id: 
           type: integer
           description: Unique movement id
-          example: 12185
+          example: 12345
         title: 
           type: string
           description: Name of the movement
-          example: "M1 - The King's Birth"
+          example: M1 - The King's Birth
         sections: 
           type: array
           items: 
@@ -344,8 +336,9 @@ components:
         title: 
           type: string
           description: Name of the movement
-        title_audio: 
-          $ref: '#/components/schemas/title_audio'
+        title_audio:
+          description: Audio recording of movement title
+          $ref: '#/components/schemas/audio'
         images: 
           $ref: '#/components/schemas/images'
         section_start: 
@@ -366,12 +359,16 @@ components:
         verse_end: 
           type: integer
           description: Number of last verse that is referenced in this movement, along with chapter would be chapter_end:verse_end
-        audio_notes: 
+        notes_title: 
+          type: string
+          description: Default title for audio notes at the movement level
+          example: Notes
+        audio_notes:
           type: array
           description: Movement level audio notes such as introductions
           items:
             $ref: '#/components/schemas/audio_note'
-          default: []
+          # default: []
         sections: 
           type: array
           items: 
@@ -411,7 +408,7 @@ components:
         id: 
           type: integer
           description: Uniquely identifies this chapter across the whole Bible
-          example: 557495205
+          example: 12345
         chapter: 
           type: integer
           description: Chapter number
@@ -419,7 +416,7 @@ components:
         title: 
           type: string
           description: Name of the chapter
-          example: "Chapter 1"
+          example: Chapter 1
         sections: 
           type: array
           items: 
@@ -427,7 +424,7 @@ components:
     
     chapter:
       type: object
-      description: "All sections and passages that appear in a given chapter"
+      description: All sections and passages that appear in a given chapter
       required: 
         - id
         - chapter
@@ -436,7 +433,7 @@ components:
         id: 
           type: integer
           description: Uniquely identifies this chapter across the whole Bible
-          example: 1363714755
+          example: 12345
         chapter: 
           type: integer
           description: Chapter number
@@ -444,7 +441,7 @@ components:
         title: 
           type: string
           description: Name of the chapter
-          example: "Chapter 1"
+          example: Chapter 1
         movement_start: 
           type: integer
           description: Id of the movement where the chapter begins
@@ -469,16 +466,21 @@ components:
           type: number
           description: Id of the last passage in the chapter
           example: 32269
-        title_audio: 
-          $ref: '#/components/schemas/title_audio'
+        title_audio:
+          description: Audio recording of chapter number
+          $ref: '#/components/schemas/audio'
         images: 
           $ref: '#/components/schemas/images'
+        notes_title: 
+          type: string
+          description: Default title for audio notes at the chapter level
+          example: Notes
         audio_notes: 
           type: array
           description: Chapter level audio notes such as introductions
           items:
             $ref: '#/components/schemas/audio_note'
-          default: []
+          # default: []
         sections: 
           type: array
           items: 
@@ -600,7 +602,7 @@ components:
         id:
           type: integer
           description: Unique id used to identify the Book 
-          example: 13696
+          example: 12345
         book_id: 
           type: string
           description: Unique Book Id used to identify the Book in API path parameters
@@ -612,15 +614,15 @@ components:
         name: 
           type: string
           description: Common short book name; can be used for text title
-          example: "Luke"
+          example: Luke
         name_long: 
           type: string
           description: Longer traditional book name
-          example: "The Gospel According to Luke"
+          example: The Gospel According to Luke
         name_alt: 
           type: string
           description: Story-based book name 
-          example: "Luke's Good News"
+          example: Luke's Good News
         testament: 
           type: string
           enum: 
@@ -637,19 +639,17 @@ components:
           type: string
           description: Alphanumeric sort order within the entire Bible.  
                         OT books start with A; NT start with B.  Single digit padded with leading 0.
-          example: "B03"
+          example: B03
         book_group: 
           type: string
           description: Traditional grouping of books into larger sections
-          example: "The Gospels"
+          example: The Gospels
         title_audio:
-          allOf:
-            - $ref: '#/components/schemas/title_audio'
-            - description: Audio recording of traditional book name corresponding to the "name" field
+          description: Audio recording of traditional book name corresponding to the name field
+          $ref: '#/components/schemas/audio'
         title_audio_alt:
-          allOf:
-            - $ref: '#/components/schemas/title_audio'
-            - description: Audio recording of book name corresponding to name_alt
+          description: Audio recording of book name corresponding to name_alt
+          $ref: '#/components/schemas/audio'
         images:
           $ref: '#/components/schemas/images'
         audio_notes: 
@@ -660,21 +660,20 @@ components:
           default: []
     
     book_outline: 
-      type: array
+      type: object
       description: Book outline with movement and chapter summaries, no passage content
-      items: 
-        allOf:
-        - $ref: '#/components/schemas/obt_type_book'
-        - type: object
-          properties:
-            movements:
-              type: array
-              items:
-                $ref: '#/components/schemas/movement_summary'
-            chapters:
-              type: array
-              items:
-                $ref: '#/components/schemas/chapter_summary'
+      allOf:
+      - $ref: '#/components/schemas/obt_type_book'
+      - type: object
+        properties:
+          movements:
+            type: array
+            items:
+              $ref: '#/components/schemas/movement_summary'
+          chapters:
+            type: array
+            items:
+              $ref: '#/components/schemas/chapter_summary'
 
     book_details:
       type: array
@@ -804,8 +803,8 @@ paths:
                       properties: 
                         bible_id: 
                           type: string
-                          description: "Uniquely identifies a bible - used as path parameter in other endpoints to get data for the desired bible"
-                          example: "ENGSEB"
+                          description: Uniquely identifies a bible - used as path parameter in other endpoints to get data for the desired bible
+                          example: ENGSEB
                         abbr: 
                           type: string
                           description: Abbreviation to identify the Bible in the mobile app
@@ -813,13 +812,14 @@ paths:
                         name: 
                           type: string
                           description: Descriptive name of the bible
-                          example: "Spoken English Bible"
+                          example: Spoken English Bible
                         iso: 
                           $ref: '#/components/schemas/language_code'
                         id:
                           type: integer
-                        title_audio: 
-                          $ref: '#/components/schemas/title_audio'
+                        title_audio:
+                          description: Audio recording of the bible name
+                          $ref: '#/components/schemas/audio'
                         audio_notes: 
                           type: array
                           description: Audio notes at the Bible level
@@ -867,16 +867,17 @@ paths:
                           example: audio_note
                         description: 
                           type: string
-                          example: "Audio notes - may be associated with a particular passage of scripture or stand-alone"
+                          example: Audio notes - may be associated with a particular passage of scripture or stand-alone
                         id:
                           type: integer
+                          example: 6
 
   /bibles/{bible_id}/note_categories:
     get:
       tags:
         - Bibles
       summary: Bible Audio Note Categories
-      description: Categories identify the types of audio notes included in this Bible, for example, "Key Concept Stories" or "Explanations".
+      description: Categories identify the types of audio notes included in this Bible, for example, Key Concept Stories or Explanations.
       parameters:
         - name: bible_id
           in: path
@@ -950,58 +951,71 @@ paths:
                     properties:
                       id:
                         type: integer
+                        example: 1
                       bible_id: 
                         type: string
+                        example: ENGSEB
                       abbr: 
                         type: string
+                        example: SEB
                       name: 
                         type: string
+                        example: Spoken English Bible
                       language: 
                         type: string
+                        example: English
                       iso: 
                         type: string
+                        example: en
                       copyright:
                         type: string
                       description: 
                         type: string
                       vname: 
                         type: string
+                        example: Spoken English Bible
                       vdescription: 
                         type: string
                       notesTitle:
                         type: string
                         description: 
                       title_audio: 
-                        allOf:
-                          - description: Audio recording of bible name
-                          - $ref: '#/components/schemas/audio'
-                      audio_notes: 
+                        description: Audio recording of bible name
+                        $ref: '#/components/schemas/audio'
+                      audio_notes:
                         type: array
                         description: Audio notes at the Bible level
                         items:
                           $ref: '#/components/schemas/audio_note'
                       date: 
                         type: string
+                        default: null
                       country: 
                         type: string
                       alphabet: 
                         type: string
                         description: not currently available in APM
+                        default: null
                       mark:
                         type: string
                         description: not currently available in APM
+                        default: null
                       publishers: 
                         type: string
                         description: not currently available in APM
+                        default: null
                       attributions: 
                         type: string
                         description: not currently available in APM
+                        default: null
                       links: 
                         type: string
                         description: not currently available in APM
+                        default: null
                       filesets: 
                         type: string
                         description: not currently available in APM
+                        default: null
 
   /bibles/{bible_id}/books:
     get:
@@ -1049,7 +1063,7 @@ paths:
         - General
       summary:  General Projects/Books Outline
       description: Array of all general projects/books with published content.  Array elements have the same structure as that returned for a single book by /bibles/{bible_id}/general/{book_id}.
-                   In Akuo this content will appear under "Extras".
+                   In Akuo this content will appear under Extras.
       parameters:
         - name: bible_id
           in: path
@@ -1089,7 +1103,7 @@ paths:
       tags:
         - General
       summary: ALL General Project/Book content
-      description: Returns all the general projects/books, movements, sections and audio notes, including all audio content. In Akuo this content will appear under "Extras".
+      description: Returns all the general projects/books, movements, sections and audio notes, including all audio content. In Akuo this content will appear under Extras.
       parameters:
         - name: bible_id
           in: path
@@ -1216,41 +1230,41 @@ paths:
                     items:                      
                       $ref: '#/components/schemas/book_outline'
                     example:
-                      - book_id: "Z01"
-                        name: "Key Concept Stories"
-                        name_long: "Key Concept Stories"
-                        name_alt: "Key Concept Stories"
+                      - book_id: Z01
+                        name: Key Concept Stories
+                        name_long: Key Concept Stories
+                        name_alt: Key Concept Stories
                         testament_order: 100
-                        book_order: "Z01"
-                        book_group: "extras"
+                        book_order: Z01
+                        book_group: extras
                         chapters: []
                         movements:
                           - id: 12460
-                            title: "Key Concepts in the Bible"
+                            title: Key Concepts in the Bible
                             sections: []
                           - id: 13689
-                            title: "Key People in the Bible"
+                            title: Key People in the Bible
                             sections: []
                           - id: 13690
-                            title: "Key Places in the Bible"
+                            title: Key Places in the Bible
                             sections: []
                         title_audio: []
                         title_audio_alt: []
                         images:
-                          - format: "Thumbnail"
-                            url: "https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-512.jpg"
-                            graphics_filename: "00-KCS_-4_5829_12458_graphic-512.jpg"
-                            timestamp: "2024-06-26T23:05:50.3"
-                            id: 74
-                          - format: "WEBP"
-                            url: "https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-1024.jpg"
-                            graphics_filename: "00-KCS_-4_5829_12458_graphic-1024.jpg"
-                            timestamp: "2024-06-26T23:05:50.3"
-                            id: 74
+                          - format: Thumbnail
+                            url: https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-512.jpg
+                            graphics_filename: 00-KCS_-4_5829_12458_graphic-512.jpg
+                            timestamp: 2024-06-26T23:05:50.3
+                            id: 123
+                          - format: WEBP
+                            url: https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-1024.jpg
+                            graphics_filename: 00-KCS_-4_5829_12458_graphic-1024.jpg
+                            timestamp: 2024-06-26T23:05:50.3
+                            id: 124
                         audio_notes: []
                         testament: null
-                        obt_type: "book"
-                        id: 12458
+                        obt_type: book
+                        id: 12345
 
   /bibles/{bible_id}/{book_id}/movements:
     get:
@@ -1613,7 +1627,7 @@ paths:
     get:
       tags:
         - General
-      summary: "Content for a single Chapter within the Bible + General Project/Book."
+      summary: Content for a single Chapter within the Bible + General Project/Book.
       description: "Note:  there may not always be chapters available for a General project if it is only arranged by movements."
       parameters:
         - name: bible_id
@@ -1974,8 +1988,8 @@ paths:
                       properties: 
                         bible_id: 
                           type: string
-                          description: "Uniquely identifies a bible - used as path parameter in other endpoints to get data for the desired bible"
-                          example: "ENGSEB"
+                          description: Uniquely identifies a bible - used as path parameter in other endpoints to get data for the desired bible
+                          example: ENGSEB
                         abbr: 
                           type: string
                           description: Abbreviation to identify the Bible in the mobile app
@@ -1983,13 +1997,13 @@ paths:
                         name: 
                           type: string
                           description: Descriptive name of the bible
-                          example: "Spoken English Bible"
+                          example: Spoken English Bible
                         iso: 
                           $ref: '#/components/schemas/language_code'
                         id:
                           type: integer
                         title_audio: 
-                          $ref: '#/components/schemas/title_audio'
+                          $ref: '#/components/schemas/audio'
                         audio_notes: 
                           type: array
                           description: Audio notes at the Bible level
@@ -2037,7 +2051,7 @@ paths:
                           example: audio_note
                         description: 
                           type: string
-                          example: "Audio notes - may be associated with a particular passage of scripture or stand-alone"
+                          example: Audio notes - may be associated with a particular passage of scripture or stand-alone
                         id:
                           type: integer
 
@@ -2046,7 +2060,7 @@ paths:
       tags:
         - Helps
       summary: Bible Audio Note Categories for content published to obthelps.org
-      description: Categories identify the types of audio notes included in this Bible, for example, "Key Concept Stories" or "Explanations".
+      description: Categories identify the types of audio notes included in this Bible, for example, Key Concept Stories or Explanations.
       parameters:
         - name: bible_id
           in: path
@@ -2072,35 +2086,7 @@ paths:
                   data: 
                     type: array
                     items: 
-                      type: object
-                      required: 
-                        - id
-                        - category
-                        - color
-                      properties:
-                        id: 
-                          type: integer
-                          description: Unique identifier for the note category
-                          example: 95
-                        category: 
-                          type: string
-                          description: Category name
-                          example: "Explanations"
-                        color: 
-                          type: string
-                          description: "HTML color string to highlight the note type"
-                          example: "#97d481"
-                        specialUse: 
-                          type: string
-                          description: Identifies a category defined internally by APM for a special use, such as title or chapter number, 
-                                        as opposed to custom categories defined by the APM projects
-                          example: chapter
-                        title_audio: 
-                          allOf:
-                            - description: Audio recording of category name
-                            - $ref: '#/components/schemas/audio'
-                        images: 
-                          $ref: '#/components/schemas/images'  
+                      $ref: '#/components/schemas/note_category'
 
   /helps/{bible_id}:
     get:
@@ -2162,10 +2148,9 @@ paths:
                       notesTitle:
                         type: string
                         description: 
-                      title_audio: 
-                        allOf:
-                          - description: Audio recording of bible name
-                          - $ref: '#/components/schemas/audio'
+                      title_audio:
+                        description: Audio recording of bible name
+                        $ref: '#/components/schemas/audio'
                       audio_notes: 
                         type: array
                         description: Audio notes at the Bible level
@@ -2338,7 +2323,7 @@ paths:
         - Helps
       summary: Project/Book Outline of content published to obthelps.org
       description: Outline of a single General project/book including movements and sections, but no section audio content.
-                  In Akuo this content will appear under "Extras".
+                  In Akuo this content will appear under Extras.
       parameters:
         - name: bible_id
           in: path
@@ -2372,40 +2357,40 @@ paths:
                     items:                      
                       $ref: '#/components/schemas/book_outline'
                     example:
-                      - book_id: "Z01"
-                        name: "Key Concept Stories"
-                        name_long: "Key Concept Stories"
-                        name_alt: "Key Concept Stories"
+                      - book_id: Z01
+                        name: Key Concept Stories
+                        name_long: Key Concept Stories
+                        name_alt: Key Concept Stories
                         testament_order: 100
-                        book_order: "Z01"
-                        book_group: "extras"
+                        book_order: Z01
+                        book_group: extras
                         chapters: []
                         movements:
                           - id: 12460
-                            title: "Key Concepts in the Bible"
+                            title: Key Concepts in the Bible
                             sections: []
                           - id: 13689
-                            title: "Key People in the Bible"
+                            title: Key People in the Bible
                             sections: []
                           - id: 13690
-                            title: "Key Places in the Bible"
+                            title: Key Places in the Bible
                             sections: []
                         title_audio: []
                         title_audio_alt: []
                         images:
-                          - format: "Thumbnail"
-                            url: "https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-512.jpg"
-                            graphics_filename: "00-KCS_-4_5829_12458_graphic-512.jpg"
-                            timestamp: "2024-06-26T23:05:50.3"
+                          - format: Thumbnail
+                            url: https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-512.jpg
+                            graphics_filename: 00-KCS_-4_5829_12458_graphic-512.jpg
+                            timestamp: 2024-06-26T23:05:50.3
                             id: 74
-                          - format: "WEBP"
-                            url: "https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-1024.jpg"
-                            graphics_filename: "00-KCS_-4_5829_12458_graphic-1024.jpg"
-                            timestamp: "2024-06-26T23:05:50.3"
-                            id: 74
+                          - format: WEBP
+                            url: https://sil-transcriber-userfiles-prod.s3.amazonaws.com/graphics/00-KCS_-4_5829_12458_graphic-1024.jpg
+                            graphics_filename: 00-KCS_-4_5829_12458_graphic-1024.jpg
+                            timestamp: 2024-06-26T23:05:50.3
+                            id: 75
                         audio_notes: []
                         testament: null
-                        obt_type: "book"
+                        obt_type: book
                         id: 12458
 
   /helps/{bible_id}/{book_id}/movements:
@@ -2698,7 +2683,7 @@ paths:
           schema:
             type: integer
           required: true
-          example: 557495205
+          example: 12345
       responses:
         '200':
           description: OK
@@ -2742,7 +2727,7 @@ paths:
           schema:
             type: integer
           required: true
-          example: 1
+          example: 12345
       responses:
         '200':
           description: OK
@@ -2841,7 +2826,7 @@ paths:
           schema:
             type: integer
           required: true
-          example: 1
+          example: 12345
       responses:
         '200':
           description: OK
@@ -2883,13 +2868,13 @@ paths:
           schema:
             type: integer
           required: true
-          example: 1363714755
+          example: 12345
         - name: section_id
           in: path
           schema:
             type: integer
           required: true
-          example: 1
+          example: 123456
       responses:
         '200':
           description: OK
@@ -2932,13 +2917,13 @@ paths:
           schema:
             type: integer
           required: true
-          example: 1
+          example: 12345
         - name: section_id
           in: path
           schema:
             type: integer
           required: true
-          example: 1
+          example: 123456
       responses:
         '200':
           description: OK
