@@ -443,39 +443,45 @@ components:
           type: string
           description: Name of the chapter
           example: Chapter 1
+        title_audio:
+          description: Audio recording of chapter number
+          $ref: '#/components/schemas/audio'
+        notes_title: 
+          type: string
+          description: Default title for audio notes at the chapter level
+          example: Notes
         movement_start: 
           type: integer
           description: Id of the movement where the chapter begins
+          example: 12258
+        movement_end: 
+          type: integer
+          description: Id of the movement where the chapter ends
           example: 12258
         section_start: 
           type: integer
           description: Number of the section where the chapter begins
           example: 1
-        passage_start: 
-          type: number
-          description: Id of the first passage in the chapter
-          example: 16195
-        movement_end: 
-          type: integer
-          description: Id of the movement where the chapter ends
-          example: 12258
         section_end: 
           type: integer
           description: Number of section where the chapter ends
           example: 2
+        passage_start: 
+          type: number
+          description: Id of the first passage in the chapter
+          example: 16195
         passage_end: 
           type: number
           description: Id of the last passage in the chapter
           example: 32269
-        title_audio:
-          description: Audio recording of chapter number
-          $ref: '#/components/schemas/audio'
+        verse_start: 
+          type: integer
+          description: Number of starting verse for the chapter
+        verse_end: 
+          type: integer
+          description: Number of ending verse for the chapter
         images: 
-          $ref: '#/components/schemas/images'
-        notes_title: 
-          type: string
-          description: Default title for audio notes at the chapter level
-          example: Notes
+          $ref: '#/components/schemas/images'        
         audio_notes: 
           type: array
           description: Chapter level audio notes such as introductions
