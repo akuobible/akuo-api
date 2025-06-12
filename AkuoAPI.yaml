@@ -117,7 +117,8 @@ components:
 
     passage:
       type: object
-      required: 
+      required:
+        - id
         - passage
         - obt_type
         - text
@@ -128,6 +129,9 @@ components:
         - audio
         - images
       properties: 
+        id: 
+          type: integer
+          description: Unique ID for the passage
         passage: 
           type: number
           description: >-
