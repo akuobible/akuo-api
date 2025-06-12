@@ -127,7 +127,6 @@ components:
         - chapter_end
         - verse_end
         - audio
-        - images
       properties: 
         id: 
           type: integer
@@ -154,8 +153,6 @@ components:
           description: Number of ending verse for the passage; combined with chapter as chapter_end:verse_end
         audio: 
           $ref: '#/components/schemas/audio'
-        images: 
-          $ref: '#/components/schemas/images'
         audio_notes: 
           type: array
           description: Audio notes related to the passage
